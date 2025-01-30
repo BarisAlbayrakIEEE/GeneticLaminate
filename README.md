@@ -190,7 +190,7 @@ A and D arrays can be calculated per stacking pack which will reduce the workloa
 
 Similar to the stacking, a stacking pack can also be defined by an integral data type.
 The optimum value for P is 4.
-The optimum data type is `uint16_t` which can simulate up to 65536 packs, for which D-cache stores 65536 x 3 = 196608 values, where 3 is the number of stiffness terms.
+The optimum data type is `uint16_t` which can simulate up to 65536 packs, for which D_cache stores 65536 x 3 = 196608 values, where 3 is the number of stiffness terms.
 The stacking pack id would store two data:
 - 8 bits: 4-ply-sequence
 - 8 bits: A position flag which marks the position of the pack within the stacking.
