@@ -88,19 +88,19 @@ I will neglect the stacking rules except for the critical two in order to remain
 
 Although I know the existence of the techniques to improve the performance of a GA, I don't have a competitive experience in this field.
 Hence, **the GA in this project is a primitive version** with the following steps:
-0. **Generation:** Generate a new population as the initial elite population
-1. **Crossover:** Perform crossover on the existing elite generation
-2. **Mutation:** Mutate the crossovers
-3. **Measure:** Measure the fitness rates for the mutations
-4. **Selection:** Obtain the new elites from the mutations based on the fitness rates
-5. **Inspection:** If maxima is detected, go to Step 6, otherwise go to Step 1
+1. **Generation:** Generate a new population as the initial elite population
+2. **Crossover:** Perform crossover on the existing elite generation
+3. **Mutation:** Mutate the crossovers
+4. **Measure:** Measure the fitness rates for the mutations
+5. **Selection:** Obtain the new elites from the mutations based on the fitness rates
+6. **Inspection:** If local maxima failure is detected, go to Step 1, otherwise go to Step 2
 
 One of the main problems of GAs is to escape local maxima/minima.
 Various techniques/strategies exist to solve the problem such as:
 - Mathematical tools (e.g. gradient inspection)
 - Population strategies (e.g. multi-population approach)
 
-I used the simplest one which is the 5th Step in the above flowchart:
+I used the simplest one which is the Step 6 in the above flowchart:
 - Restart with a new generation.
 
 # 4. The Design
@@ -179,7 +179,7 @@ This would have added little complexity to the solution.
 However, I did not implement the generic solution **for simplicity** and kept the stacking ply count constant (i.e. `#define PLY_COUNT 32`).
 
 The multi-dimensional cache arrays (**A_cache** and **D_cache**) contain data per ply.
-The data in the two arrays are summed up in Step 3 to achieve the ABD matrix.
+The data in the two arrays are summed up in Step 4 to achieve the ABD matrix.
 The summation requires N operation where N is the stacking ply count.
 However, this N operations need to be performed for all genes.
 Another performance improvement would be achieved by defining packs of plies.
@@ -202,7 +202,7 @@ The stacking pack improvement adds lots of complexity to the algorithm.
 **Hence, I will not implement this improvement for simplicity.**
 
 **Concurrency**
-The next section covers all the related issues about concurrency, which suggests two solutions based on the two fundamental approaches:\
+The next section covers all the related issues about concurrency, which suggests two solutions based on the two fundamental approaches:
 1. Data parallelism
 2. Task parallelism
 
@@ -213,13 +213,13 @@ It's important to note here that the two would require different data structures
 
 # 5. The Concurrency
 
-Let's recall the flowchart of the genetic solution:\
-0. **Generation:** Generate a new population as the initial elite population
-1. **Crossover:** Perform crossover on the existing elite generation
-2. **Mutation:** Mutate the crossovers
-3. **Measure:** Measure the fitness rates for the mutations
-4. **Selection:** Obtain the new elites from the mutations based on the fitness rates
-5. **Inspection:** If maxima is detected, go to Step 6, otherwise go to Step 1
+Let's recall the flowchart of the genetic solution:
+1. **Generation:** Generate a new population as the initial elite population
+2. **Crossover:** Perform crossover on the existing elite generation
+3. **Mutation:** Mutate the crossovers
+4. **Measure:** Measure the fitness rates for the mutations
+5. **Selection:** Obtain the new elites from the mutations based on the fitness rates
+6. **Inspection:** If local maxima failure is detected, go to Step 1, otherwise go to Step 2
 
 Below are the required software operations for such a flowchart:
 - Traversal within linear contiguous data structures (i.e. array or vector),
@@ -232,30 +232,30 @@ The above operations are executed effectively by modern computers.
 This is an important point when it comes to concurrency.
 
 Let's inspect the flowchart in more detail.
-Step 0 is the initialization step.
-Step 5 inspects the status and involves Step 0 into the GA conditionally.
-Steps 1, 2, 3, and 4 are the fundamental operations of the GAs.
-Steps 1, 2, and 3 can be executed as long as the required data exist.
-For example, Step 2 can perform mutations as long as there exist crossover genes.
+Step 1 is the initialization step.
+Step 6 inspects the status and involves Step 0 into the GA conditionally.
+Steps 2, 3, 4, and 5 are the fundamental operations of the GAs.
+Steps 2, 3, and 4 can be executed as long as the required data exist.
+For example, Step 3 can perform mutations as long as there exist crossover genes.
 Hence, these three steps can be executed asynchronously.
-However, Step 4 refers to a sorting algorithm.
-This step can only be processed after Step 3 finishes, unless a special data structure (e.g. a binary tree) is used.
+However, Step 5 refers to a sorting algorithm.
+This step can only be processed after Step 4 finishes, unless a special data structure (e.g. a binary tree) is used.
 The asynchronous solution with a tree is not efficient mainly because:
 - The sorting algorithms deploy the parallelism efficiently (e.g. quick sort),
 - The fine-grained synchronization is limited for the tree data structures.
 
-Thus, Step 4 needs to be synchronized with Step 3.
+Thus, Step 5 needs to be synchronized with Step 4.
 
-Depending on how Steps 1, 2, and 3 are accomplished, we can have two approaches to perform the flowchart concurrently:
+Depending on how Steps 2, 3, and 4 are accomplished, we can have two approaches to perform the flowchart concurrently:
 - Data parallelism: Synchronous execution
 - Task parallelism: Asynchronous execution with producer-consumer strategy
 
 **Task Parallelism**
 The thread-safe containers (i.e. thread_safe_queue) store the populations/generations.
 Each step consumes genes from a queue and produces new genes for another one.
-For example, a thread corresponding to Step 1 would consume elite genes (*if exist*) from the elite population queue,
+For example, a thread corresponding to Step 2 would consume elite genes (*if exist*) from the elite population queue,
 produce crossover genes and push them into the crossover population queue.
-Asynchronously, another thread corresponding to Step 2 would consume a crossover gene (*if exists*) from the crossover population queue,
+Asynchronously, another thread corresponding to Step 3 would consume a crossover gene (*if exists*) from the crossover population queue,
 produce a mutation gene and push it into the mutation population queue.
 
 The producer-consumer strategy is a reader and writer combination which **requires a synchronization** between the threads.
@@ -267,7 +267,7 @@ As specified above, the genetic functions execute in a short time such that thre
 The synchronization is ensured by executing the flowchart sequentially.
 Each step spawns a number of parallel threads to process the genes in the related array and
 update the pre-allocated array of the next step.
-For example, each thread spawned in Step 2 reads a number of crossover genes from the crossover array and
+For example, each thread spawned in Step 3 reads a number of crossover genes from the crossover array and
 updates the mutation array with the mutations of those crossover genes.
 
 The genes/data have a constant size and are stored in constant size arrays.
