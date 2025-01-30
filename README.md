@@ -14,6 +14,7 @@ Finally, I will discuss the issues about performance and concurrency.
 - **A matrix:** The extensional stiffness matrix
 - **B matrix:** The coupling matrix between A and D
 - **D matrix:** The rotational stiffness matrix
+- **NP:** The stacking sequence ply count
 - **NE:** The size of elite population
 - **NC:** The size of crossover population where NC = NE^2
 
