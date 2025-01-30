@@ -279,12 +279,12 @@ we can say that all threads executing a function would yield in **approximately 
 
 At this point, it's worth to discuss about the time complexity analysis.
 Assuming the existence of sufficient processors for parallel execution, below are the time complexities for each step of the GA:
-0. Generation: O(1)
-1. Crossover: O(1)
-2. Mutation: O(1)
-3. Measurement: O(1)
-4. Selection (i.e. sort): O(NC) where NC = NE ^ 2
-5. Inspection (i.e. max element): O(logNC) ~ 0(NE) where NC = NE ^ 2
+1. Generation: O(1)
+2. Crossover: O(1)
+3. Mutation: O(1)
+4. Measurement: O(1)
+5. Selection (i.e. sort): O(NC) where NC = NE ^ 2
+6. Inspection (i.e. max element): O(logNC) ~ 0(NE) where NC = NE ^ 2
 
 See the documentations of TODO and TODO functions for a detailed discussion about the selection and inspection.
 
