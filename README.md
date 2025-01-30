@@ -88,12 +88,12 @@ I will neglect the stacking rules except for the critical two in order to remain
 
 Although I know the existence of the techniques to improve the performance of a GA, I don't have a competitive experience in this field.
 Hence, **the GA in this project is a primitive version** with the following steps:
-- **Generation:** Generate a new population as the initial elite population
-- **Crossover:** Perform crossover on the existing elite generation
-- **Mutation:** Mutate the crossovers
-- **Measure:** Measure the fitness rates for the mutations
-- **Selection:** Obtain the new elites from the mutations based on the fitness rates
-- **Inspection:** If maxima is detected, go to Step 6, otherwise go to Step 1
+0. **Generation:** Generate a new population as the initial elite population
+1. **Crossover:** Perform crossover on the existing elite generation
+2. **Mutation:** Mutate the crossovers
+3. **Measure:** Measure the fitness rates for the mutations
+4. **Selection:** Obtain the new elites from the mutations based on the fitness rates
+5. **Inspection:** If maxima is detected, go to Step 6, otherwise go to Step 1
 
 One of the main problems of GAs is to escape local maxima/minima.
 Various techniques/strategies exist to solve the problem such as:
@@ -214,12 +214,12 @@ It's important to note here that the two would require different data structures
 # 5. The Concurrency
 
 Let's recall the flowchart of the genetic solution:
-0. Generation: Generate a new population as the initial elite population
-1. Perform crossover on the existing elite generation
-2. Mutate the crossovers
-3. Measure fitness rates of the mutations
-4. Obtain the new elites from the mutations based on the fitness rates
-5. If maxima is detected go to Step 0, otherwise go to Step 1
+0. **Generation:** Generate a new population as the initial elite population
+1. **Crossover:** Perform crossover on the existing elite generation
+2. **Mutation:** Mutate the crossovers
+3. **Measure:** Measure the fitness rates for the mutations
+4. **Selection:** Obtain the new elites from the mutations based on the fitness rates
+5. **Inspection:** If maxima is detected, go to Step 6, otherwise go to Step 1
 
 Below are the required software operations for such a flowchart:
 - Traversal within linear contiguous data structures (i.e. array or vector),
@@ -247,8 +247,8 @@ The asynchronous solution with a tree is not efficient mainly because:
 Thus, Step 4 needs to be synchronized with Step 3.
 
 Depending on how Steps 1, 2, and 3 are accomplished, we can have two approaches to perform the flowchart concurrently:
-1. Task parallelism: Asynchronous execution with producer-consumer strategy
-2. Data parallelism: Synchronous execution
+- Data parallelism: Synchronous execution
+- Task parallelism: Asynchronous execution with producer-consumer strategy
 
 **Task Parallelism**
 The thread-safe containers (i.e. thread_safe_queue) store the populations/generations.
