@@ -202,7 +202,7 @@ The stacking pack improvement adds lots of complexity to the algorithm.
 **Hence, I will not implement this improvement for simplicity.**
 
 **Concurrency**
-The next section covers all the related issues about concurrency, which suggests two solutions based on the two fundamental approaches:
+The next section covers all the related issues about concurrency, which suggests two solutions based on the two fundamental approaches:\
 1. Data parallelism
 2. Task parallelism
 
@@ -213,7 +213,7 @@ It's important to note here that the two would require different data structures
 
 # 5. The Concurrency
 
-Let's recall the flowchart of the genetic solution:
+Let's recall the flowchart of the genetic solution:\
 0. **Generation:** Generate a new population as the initial elite population
 1. **Crossover:** Perform crossover on the existing elite generation
 2. **Mutation:** Mutate the crossovers
