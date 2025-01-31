@@ -201,7 +201,7 @@ Hence, for this solution, the ply count for a stacking is limited by: 256 * 4 = 
 The stacking pack improvement adds lots of complexity to the algorithm.
 **Hence, I will not implement this improvement for simplicity.**
 
-**Concurrency**
+**Concurrency**\
 The next section covers all the related issues about concurrency, which suggests two solutions based on the two fundamental approaches:
 1. Data parallelism
 2. Task parallelism
