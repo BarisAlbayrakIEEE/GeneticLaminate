@@ -168,7 +168,7 @@ The downside of Approach 2 is the fitness calculation (i.e. ABD) which requires 
 - `0xFF` (hexadecimal): `[3, 3, 3, 3]`
 
 Hence, Approach 2 improves to crossover a lot while complicating the fitness calculation.
-The balance between the two implications spoils downtoward Approach 2 as the ply count increases.
+The balance between the two implications spoils down toward Approach 2 as the ply count increases.
 My trade-offs show that for a stacking with 32 plies, Approach 2 results with an approximately 10 times better performance for the whole GA.
 Hence, I will follow Approach 2.
 
