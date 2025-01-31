@@ -41,7 +41,7 @@ For example, A11 simulates the extensional stiffness in the 1st direction,
 while D22 simulates the rotational/bending stiffness in the 2nd direction.
 The details can be found in any source about CLT.
 
-**Note**
+**Note**\
 Instead of the ply angles, I will use an indexing system for the ply angles in order to improve memory and performance efficiency:
 - 0: 0-degree plies
 - 1: 90-degree plies
