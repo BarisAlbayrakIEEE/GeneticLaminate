@@ -229,7 +229,7 @@ We can have two approaches in case of the concurrency:
 The data parallelism corresponds to a **population-wise** strategy.
 In other words, the algorithm is designed
 considering the populations (e.g. elites or crossovers).
-Each process operates on the populations parallely instead of the individual genes.
+Each process operates on the corresponding population parallely instead of the individual genes.
 
 The synchronization is ensured by executing the flowchart sequentially.
 Each step spawns a number of parallel threads which process the genes from the array of the previous step and update the genes from the array of the next step.
