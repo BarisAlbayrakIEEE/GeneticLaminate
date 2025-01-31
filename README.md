@@ -211,87 +211,109 @@ It's important to note here that the two would require different data structures
 - Data parallelism: Contiguous arrays (e.g. `elites_array[]`, `crossovers_array[]`)
 - Task parallelism: Thread-safe queues (e.g. `elites_queue`, `crossovers_queue`)
 
-# 5. The Concurrency
+#5. The Concurrency
 
 Let's recall the flowchart of the genetic solution:
-1. **Generation:** Generate a new population as the initial elite population
-2. **Crossover:** Perform crossover on the existing elite generation
-3. **Mutation:** Mutate the crossovers
-4. **Measure:** Measure the fitness rates for the mutations
-5. **Selection:** Obtain the new elites from the mutations based on the fitness rates
-6. **Inspection:** If local maxima failure is detected, go to Step 1, otherwise go to Step 2
+1. Generation: Generate a new population as the initial elite population
+2. Crossover: Perform crossover on the existing elite generation
+3. Mutation: Mutate the crossovers
+4. Measure: Measure the fitness rates for the mutations
+5. Selection: Obtain the new elites from the mutations based on the fitness rates
+6. Inspection: If maxima is detected goto Step 1, otherwise goto Step 2
 
-Below are the required software operations for such a flowchart:
-- Traversal within linear contiguous data structures (i.e. array or vector),
-- Core CPU operations such as bit shifting, masking, etc.
-- Fundamental mathematical operations such as addition or multiplication
-- Array copy
-- **No branches(!)**
-
-The above operations are executed effectively by modern computers.
-This is an important point when it comes to concurrency.
-
-Let's inspect the flowchart in more detail.
-Step 1 is the initialization step.
-Step 6 inspects the status and involves Step 0 into the GA conditionally.
-Steps 2, 3, 4, and 5 are the fundamental operations of the GAs.
-Steps 2, 3, and 4 can be executed as long as the required data exist.
-For example, Step 3 can perform mutations as long as there exist crossover genes.
-Hence, these three steps can be executed asynchronously.
-However, Step 5 refers to a sorting algorithm.
-This step can only be processed after Step 4 finishes, unless a special data structure (e.g. a binary tree) is used.
-The asynchronous solution with a tree is not efficient mainly because:
-- The sorting algorithms deploy the parallelism efficiently (e.g. quick sort),
-- The fine-grained synchronization is limited for the tree data structures.
-
-Thus, Step 5 needs to be synchronized with Step 4.
-
-Depending on how Steps 2, 3, and 4 are accomplished, we can have two approaches to perform the flowchart concurrently:
+We can have two approaches in case of the concurrency:
 - Data parallelism: Synchronous execution
 - Task parallelism: Asynchronous execution with producer-consumer strategy
 
-**Task Parallelism**
-The thread-safe containers (i.e. thread_safe_queue) store the populations/generations.
-Each step consumes genes from a queue and produces new genes for another one.
-For example, a thread corresponding to Step 2 would consume elite genes (*if exist*) from the elite population queue,
-produce crossover genes and push them into the crossover population queue.
-Asynchronously, another thread corresponding to Step 3 would consume a crossover gene (*if exists*) from the crossover population queue,
-produce a mutation gene and push it into the mutation population queue.
-
-The producer-consumer strategy is a reader and writer combination which **requires a synchronization** between the threads.
-This can be accomplished by lock-based (i.e. `boost::thread_safe_queue`) or lock-free (i.e. atomic) containers.
-However, **either of the two provides wait-free execution**.
-As specified above, the genetic functions execute in a short time such that thread synchronization would affect the total runtime significantly.
-
 **Data Parallelism**
+The data parallelism corresponds to a **population-wise** strategy.
+In other words, the algorithm is designed
+considering the populations (e.g. elites or crossovers).
+Each process operates on the populations parallely instead of the individual genes.
+
 The synchronization is ensured by executing the flowchart sequentially.
-Each step spawns a number of parallel threads to process the genes in the related array and
-update the pre-allocated array of the next step.
-For example, each thread spawned in Step 3 reads a number of crossover genes from the crossover array and
-updates the mutation array with the mutations of those crossover genes.
+Each step spawns a number of parallel threads which process the genes from the array of the previous step and update the genes from the array of the next step.
+For example, each thread spawned in Step 3 reads a number of crossover genes from the crossover array and updates the mutation array with the mutations of those crossover genes.
+Executing each step sequentially, the solution **does not need any synchronization primitive (e.g. locks or atomics)**.
+The whole parallel capacity of the platform can be utilized efficiently.
 
-The genes/data have a constant size and are stored in constant size arrays.
-Additionally, as specified above, the functions in the flowchart have no branches, following the same pattern for all data.
-Having the same fundamental operations on the integral data,
-we can say that all threads executing a function would yield in **approximately the same time**.
-
-**So, data parallelism uses the resources effectively without leading inert threads.**
+The genes/data have a constant size and is stored in constant size arrays.
+Additionally, the operations in the flowchart have no branches so that the same pattern is followed for all data.
+Having **the same fundamental operations on the integral data**, we can say that all threads executing a function would yield in **approximately the same time**.
+**So, the resources are used effectively without leading inert processors/threads.**
 
 At this point, it's worth to discuss about the time complexity analysis.
-Assuming the existence of sufficient processors for parallel execution, below are the time complexities for each step of the GA:
+**Assuming the existence of sufficient processors for parallel execution**, below are the time complexities for each step of the GA:
 1. Generation: O(1)
 2. Crossover: O(1)
 3. Mutation: O(1)
-4. Measurement: O(1)
-5. Selection (i.e. sort): O(NC) where NC = NE ^ 2
-6. Inspection (i.e. max element): O(logNC) ~ 0(NE) where NC = NE ^ 2
+4. Measurement: O(NP)
+5. Selection (i.e. sort): O(NC) where NC = NE²
+6. Inspection (i.e. max element): O(logNC) ~ O(NE) where NC = NE²
 
-See the documentations of TODO and TODO functions for a detailed discussion about the selection and inspection.
+The complexities for the first 3 steps are obvious.
+The Measurement process composes the calculation of the ABD matrix, which is reduced to the ply-wise summation of the cache arrays: A_cache and D_cache.
+The complexity O(NP) can further be improved as O(1) by increasing the parallelism if more processor support is available.
+See the documentations of `max_element_no_recursion__h` and `sort_indexs_by_max_element_no_recursion__h` functions for the complexities of the selection and inspection.
 
+The obvious conclusion the above complexities point is that the selection step (Step 5) dominates the flow.
+In other words, the complexity of one cycle of the GA is approximately O(NC) ~ O(NE²), which is **parabolic** in terms of the elite population size.
+This is the main problem with data parallelism.
+The solution is obvious: Improve the selection (i.e. sort) algorithm.
+See the documentations of `sort_indexs_by_max_element_no_recursion__h` function for this issue.
 
+**Task Parallelism**
+In contrast to the data parallelism, the task parallelism corresponds to a **gene-wise** strategy.
+In other words, the algorithm is designed considering the genes (e.g. elite or crossover).
+Each process operates on the individual genes (or pairs) instead of the populations.
 
+The thread-safe containers (i.e. thread_safe_queue) store the populations/generations.
+Each step **consumes** genes from a queue and **produces** new genes for another one.
+For example, a thread corresponding to Step 2 would consume two elite genes (if exist) from the elite population queue,
+produce a crossover gene and push it into the crossover population queue.
+Asynchronously, another thread corresponding to Step 3 would consume a crossover gene (if exists) from the crossover population queue,
+mutate the gene and push it into the mutation population queue.
 
-On the other hand, data parallelism comes with a thread scheduling problem.
-The GA constantly loops through the 5 steps, and each step would request a large number of threads from the processor.
-However, thread scheduling comes with a cost.
-Even worse, the processor can be busy yielding an over-subscription problem.
+The producer-consumer strategy is a reader and writer combination which requires a **synchronization** between the threads.
+This can be accomplished by lock-based (i.e. mutex) or lock-free (i.e. atomic) containers.
+However, **either of the two provides wait-free execution**.
+As the complexities show, the genetic functions execute in a short time such that thread synchronization would affect the total runtime significantly.
+**This is the 1st problem with the solution based on task parallelism.**
+
+**The 2nd problem** is about the selection step.
+The selection process is actually a sort algorithm, which by its nature,
+requires that the related data (i.e. the mutations and the unsorted fitness rates) should be prepared prior to the execution.
+**In other words, the sort operation cannot be performed asynchronously, and the previous 4 steps are serialized with this operation.**
+
+A solution to this problem is to modify the selection logic.
+In case of data parallelism, the selection operates on the mutation population
+by sorting the fitness rates in a descending order and taking the first NE elements from the mutation population based on this sorted fitness rate.
+In case of task parallelism, the selection would operate like a maximum algorithm:
+- Cache the current maximum fitness rate,
+- Select a mutation gene if its fitness rate is higher than the current maximum,
+- Update the maximum fitness rate.
+
+This algorithm can be executed asynchronously with the other steps of the GA.
+However, this solution would not generate diversity among the elites as *many good genes* would be elected due to this maximum strategy.
+The *only the best genes* strategy can be relaxed by replacing the maximum requirement with some percent of the maximum (e.g. 95%).
+This approach performs well out of the local/global maxima.
+Around the critical regions, on the other hand, most of the genes (maybe all!) would fail to pass the limitation (i.e. 95%)
+which means that the selection fails to feed the elite population container.
+In such cases (genes less than 95%), the selection would generate random genes in order to keep the processors hot working on the elite population container.
+
+Another problem with task parallelism is about the crossover operation.
+In case of data parallelism, an elite gene can be combined with all the other elites
+which allows us to have **polygamy** in the crossover operation.
+**This will increase the genetic diversity among the crossover population.**
+However, in case of task parallelism, two elite genes are consumed asynchronously before other elites arrive in the elite population container.
+
+In summary, the task parallelism has the following problems:
+1. The shared data needs to be synchronized (i.e. mutex or atomic).
+2. The population is dominated by random genes around the local/global maxima.
+3. The elite genes in the population may belong to different local/global maxima.
+4. The crossover operation cannot be implemented to support polygamy.
+
+As stated before, I am not an expert on GAs.
+However, in my opinion, the task parallelism is not appropriate in case of the GAs
+unless the problem can find solutions to the last three of the problems above.
+**Hence, I selected the data parallelism in my solution.**
