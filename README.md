@@ -315,5 +315,6 @@ In summary, the task parallelism has the following problems:
 
 As stated before, I am not an expert on GAs.
 However, in my opinion, the task parallelism is not appropriate in case of the GAs
-unless the problem can find solutions to the last three of the problems above.
-**Hence, I selected the data parallelism in my solution.**
+unless solutions to the last three of the problems above can be found.
+
+**I selected the data parallelism in my solution.**
