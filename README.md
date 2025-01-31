@@ -211,7 +211,7 @@ It's important to note here that the two would require different data structures
 - Data parallelism: Contiguous arrays (e.g. `elites_array[]`, `crossovers_array[]`)
 - Task parallelism: Thread-safe queues (e.g. `elites_queue`, `crossovers_queue`)
 
-#5. The Concurrency
+# 5. The Concurrency
 
 Let's recall the flowchart of the genetic solution:
 1. Generation: Generate a new population as the initial elite population
