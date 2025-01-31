@@ -249,7 +249,7 @@ At this point, it's worth to discuss about the time complexity analysis.
 3. Mutation: O(1)
 4. Measurement: O(NP)
 5. Selection (i.e. sort): O(NC) where NC = NE²
-6. Inspection (i.e. max element): O(logNC) ~ O(NE) where NC = NE²
+6. Inspection (i.e. max element): O(logNC) ~ O(NE) where NC = NE ^ 2
 
 The complexities for the first 3 steps are obvious.
 The Measurement process composes the calculation of the ABD matrix, which is reduced to the ply-wise summation of the cache arrays: A_cache and D_cache.
