@@ -1,4 +1,12 @@
-
+/*
+* This file contains functions of the genetic algorithm
+* for the determination of stacking sequence of composite laminates.
+* 
+* See the README file of the repository below for the details
+* 
+* author: albayrak.baris.ieee@gmail.com
+* repo: https://github.com/BarisAlbayrakIEEE/GeneticLaminate
+*/
 
 #include <stdio.h>
 #include <cstddef>
@@ -67,6 +75,10 @@ struct Orthotropic {
         : _t(t), _e11(e11), _e22(e22), _g12(g12), _v12(v12) {};
 };
 
+/*
+ * cubic_difs: array with (PLY_COUNT + 1) number of elements.
+ * required by D matrix of the ABD matrix
+ */
 void generate_cubic_difs(
     Orthotropic const* orthotropic,
     size_t size_,
@@ -85,6 +97,9 @@ void generate_cubic_difs(
     }
 };
 
+/*
+ * Q array is required by the ABD matrix
+ */
 void calculate_Qs(
     Orthotropic const* orthotropic,
     float* Qs)
@@ -98,6 +113,9 @@ void calculate_Qs(
     Qs[3] = orthotropic->_g12;                                                // Q66
 };
 
+/*
+ * Qbar array is required by the ABD matrix
+ */
 void calculate_Qbars(
     float const Qs[Q_ARR_SIZE],
     unsigned char angle_index,
@@ -127,6 +145,9 @@ void calculate_Qbars(
     Qbars[4] = temp5 * c2s2_ + Q66 * (c4_ + s4_); // Qbar66
 };
 
+/*
+ * Qbar_arr array is required by the ABD matrix
+ */
 void calculate_Qbar_arr(
     float const Qs[Q_ARR_SIZE],
     float(*Qbar_arr)[QBAR_ARR_SIZE])
@@ -137,6 +158,10 @@ void calculate_Qbar_arr(
     calculate_Qbars(Qs, ANGLE_INDEX_90, Qbar_arr[3]);
 };
 
+/*
+ * A and D values are cached per ply in order to improve the ABD calculation.
+ * See the README file of the repository for more information.
+ */
 void calculate_As_cache(
     Orthotropic const* orthotropic,
     float const Qbar_arr[ANGLE_INDEX_ARR_SIZE][QBAR_ARR_SIZE],
@@ -151,6 +176,10 @@ void calculate_As_cache(
     }
 };
 
+/*
+ * A and D values are cached per ply in order to improve the ABD calculation.
+ * See the README file of the repository for more information.
+ */
 void calculate_Ds_cache(
     float const Qbar_arr[ANGLE_INDEX_ARR_SIZE][QBAR_ARR_SIZE],
     float const cubic_difs[PLY_COUNT],
@@ -167,6 +196,12 @@ void calculate_Ds_cache(
     }
 };
 
+/*
+ * A stacking is defined by uint64_t which stores the angles for 32 plies.
+ * This function extarcts the ply angles (unsigned char) from uint64_t stacking and returns ass an array.
+ * 
+ * Host code
+ */
 inline void get_stacking_angle_indexs__h(
     _Stacking_t stacking,
     _Stacking_angle_index_t* stacking_angle_indexs)
@@ -178,6 +213,9 @@ inline void get_stacking_angle_indexs__h(
     }
 };
 
+/*
+ * Helper function for calculate_ABDs_treshold_main
+ */
 void calculate_ABDs_treshold_helper(
     float const As_cache__h[A_ARR_SIZE][ANGLE_INDEX_ARR_SIZE],
     float const Ds_cache__h[D_ARR_SIZE][PLY_COUNT][ANGLE_INDEX_ARR_SIZE],
@@ -204,6 +242,11 @@ void calculate_ABDs_treshold_helper(
     }
 };
 
+/*
+ * Calculates the treshold values for the ABD matrix.
+ * The measurement process of the GA compares the ABD of the stacking with this treshold values
+ * in order to determine tthe fitness rate forr the stacking.
+ */
 void calculate_ABDs_treshold_main(
     float const As_cache__h[A_ARR_SIZE][ANGLE_INDEX_ARR_SIZE],
     float const Ds_cache__h[D_ARR_SIZE][PLY_COUNT][ANGLE_INDEX_ARR_SIZE],
@@ -225,6 +268,10 @@ void calculate_ABDs_treshold_main(
     ABDs_treshold__h[7] = ABDs_uni[1][7] / treshold_ratio; // D66: stack of 45
 };
 
+/*
+ * Gets the info relaated to the recursion (e.g. the available stack size provided by the platform).
+ *   Case 1: The function guarantees a uniform recursion
+ */
 void get_recursion_info_uniform(
     size_t stack_size_global,
     size_t population_size_function,
@@ -249,6 +296,10 @@ void get_recursion_info_uniform(
     }
 };
 
+/*
+ * Gets the info relaated to the recursion (e.g. the available stack size provided by the platform).
+ *   Case 2: The function does not guarantee a uniform recursion
+ */
 void get_recursion_info_nonuniform(
     size_t stack_size_global,
     size_t population_size_function,
@@ -273,6 +324,9 @@ void get_recursion_info_nonuniform(
     }
 };
 
+/*
+ * Initializes an integer array for which the values are equal to the indexes
+ */
 __global__ void initialize_indexs(
     size_t population_size_crossover,
     size_t* fitness_rate_indexs__d)
@@ -282,6 +336,12 @@ __global__ void initialize_indexs(
     fitness_rate_indexs__d[tid] = tid;
 };
 
+/*
+ * The recursive max_element without limitation on the recursion.
+ * The available stack size is sufficient to support the full depth recursion.
+ * 
+ * Deprecated as the recursive solution is not an efficient solution due to the excessive stack usage.
+ */
 [[deprecated]] __global__ void max_element_recursive_no_limit__d(
     float const* arr_vals__d,
     size_t low,
@@ -324,6 +384,12 @@ __global__ void initialize_indexs(
     }
 };
 
+/*
+ * The recursive max_element with limited recursion.
+ * The available stack size is not sufficient to support the full depth recursion.
+ *
+ * Deprecated as the recursive solution is not an efficient solution due to the excessive stack usage.
+ */
 [[deprecated]] __global__ void max_element_recursive_limited__d(
     float const* arr_vals__d,
     size_t low,
@@ -375,6 +441,182 @@ __global__ void initialize_indexs(
     }
 };
 
+/*
+ * The partition function of the quick_sort.
+ * Deprecated as the recursive quick_sort is not efficient due to the excessivee stack usage.
+ */
+[[deprecated]] __device__ size_t partition__d(
+    int low,
+    int up,
+    size_t* arr_indexs__d,
+    float* arr_vals__d)
+{
+    float pivot = arr_vals__d[up];
+    int i = low - 1;
+    float temp = 0;
+    for (size_t j = low; j < up; ++j) {
+        if (arr_vals__d[j] > pivot) {
+            ++i;
+            temp = arr_vals__d[i];
+            arr_vals__d[i] = arr_vals__d[j];
+            arr_vals__d[j] = temp;
+            arr_indexs__d[i] = j;
+            arr_indexs__d[j] = i;
+        }
+    }
+    ++i;
+    temp = arr_vals__d[i];
+    arr_vals__d[i] = arr_vals__d[up];
+    arr_vals__d[up] = temp;
+    arr_indexs__d[i] = up;
+    arr_indexs__d[up] = i;
+
+    return i;
+};
+
+/*
+ * The recursive quick_sort without limitation on the recursion.
+ * The available stack size is sufficient to support the full depth recursion.
+ *
+ * Deprecated as the recursive solution is not an efficient solution due to the excessive stack usage.
+ */
+[[deprecated]] __global__ void quick_sort_no_limit__d(
+    int low,
+    int up,
+    size_t* arr_indexs__d,
+    float* arr_vals__d)
+{
+    if (low == up) return;
+
+    // recursion
+    int partition_index = partition__d(
+        low,
+        up,
+        arr_indexs__d,
+        arr_vals__d);
+    if (partition_index > low + 1) {
+        quick_sort_no_limit__d<<<1, 1>>>(
+            low,
+            partition_index - 1,
+            arr_indexs__d,
+            arr_vals__d);
+    }
+    if (partition_index + 1 < up) {
+        quick_sort_no_limit__d<<<1, 1>>>(
+            partition_index + 1,
+            up,
+            arr_indexs__d,
+            arr_vals__d);
+    }
+};
+
+/*
+ * The recursive quick_sort with limited recursion.
+ * The available stack size is not sufficient to support the full depth recursion.
+ *
+ * Deprecated as the recursive solution is not an efficient solution due to the excessive stack usage.
+ */
+[[deprecated]] __global__ void quick_sort_limited__d(
+    int low,
+    int up,
+    size_t recursion_limit,
+    size_t* arr_indexs__d,
+    float* arr_vals__d)
+{
+    // base case
+    if (up - low <= recursion_limit) {
+        for (size_t i = low; i <= up; ++i) {
+            for (size_t j = i + 1; j <= up; ++j) {
+                if (arr_vals__d[j] > arr_vals__d[i]) {
+                    float temp = arr_vals__d[i];
+                    arr_vals__d[i] = arr_vals__d[j];
+                    arr_vals__d[j] = temp;
+                    arr_indexs__d[i] = j;
+                    arr_indexs__d[j] = i;
+                }
+            }
+        }
+        return;
+    }
+
+    // recursion
+    int partition_index = partition__d(
+        low,
+        up,
+        arr_indexs__d,
+        arr_vals__d);
+    if (partition_index > low + 1) {
+        quick_sort_limited__d<<<1, 1>>>(
+            low,
+            partition_index - 1,
+            recursion_limit,
+            arr_indexs__d,
+            arr_vals__d);
+    }
+    if (partition_index + 1 < up) {
+        quick_sort_limited__d<<<1, 1>>>(
+            partition_index + 1,
+            up,
+            recursion_limit,
+            arr_indexs__d,
+            arr_vals__d);
+    }
+};
+
+/*
+ * The main function for the recursive max_element.
+ * Decides whether a limitation in the recursive execution is required due to the excessive stack usage.
+ * Calls the base max_element function (no limitation on the recursion) if the stack usage is acceptable.
+ * Otherwise, calls the limited max_element function.
+ *
+ * This function is deprecated as the limited max_element algorithm is not an effective solution.
+ */
+[[deprecated]] cudaError_t max_element_recursive__h(
+    size_t size_,
+    size_t recursion_limit_max_element,
+    size_t stack_size_thread_req_max_element,
+    size_t stack_size_thread_reset,
+    float* arr_vals__d,
+    size_t* max_index__d,
+    float* max_val__d)
+{
+    cudaError_t cuda_status = cudaSuccess;
+
+    // set the stack size
+    cuda_status = cudaDeviceSetLimit(cudaLimitStackSize, stack_size_thread_req_max_element);
+    if (cuda_status != cudaSuccess) return cuda_status;
+
+    // get max element
+    if (!recursion_limit_max_element) {
+        max_element_recursive_no_limit__d<<<1, 1>>>(
+            arr_vals__d,
+            0,
+            size_ - 1,
+            max_index__d,
+            max_val__d);
+    }
+    else {
+        max_element_recursive_limited__d<<<1, 1>>>(
+            arr_vals__d,
+            0,
+            size_ - 1,
+            recursion_limit_max_element,
+            max_index__d,
+            max_val__d);
+    }
+    cuda_status = cudaGetLastError();
+    if (cuda_status != cudaSuccess) return cuda_status;
+    cuda_status = cudaDeviceSynchronize();
+    if (cuda_status != cudaSuccess) return cuda_status;
+
+    // reset the stack size
+    cuda_status = cudaDeviceSetLimit(cudaLimitStackSize, stack_size_thread_reset);
+    return cuda_status;
+};
+
+/*
+ * The helper function for max_element_no_recursion_main__d.
+ */
 __global__ void max_element_no_recursion_helper__d(
     size_t const* arr_indexs__d,
     float const* arr_vals__d,
@@ -397,6 +639,10 @@ __global__ void max_element_no_recursion_helper__d(
     }
 };
 
+/*
+ * This function implements the conquer part of the divide and conquer
+ * explained in the documentation of max_element_no_recursion__h
+ */
 __global__ void max_element_no_recursion_main__d(
     size_t* arr_indexs__d,
     float* arr_vals__d,
@@ -450,155 +696,23 @@ __global__ void max_element_no_recursion_main__d(
     }
 };
 
-[[deprecated]] __device__ size_t partition__d(
-    int low,
-    int up,
-    size_t* arr_indexs__d,
-    float* arr_vals__d)
-{
-    float pivot = arr_vals__d[up];
-    int i = low - 1;
-    float temp = 0;
-    for (size_t j = low; j < up; ++j) {
-        if (arr_vals__d[j] > pivot) {
-            ++i;
-            temp = arr_vals__d[i];
-            arr_vals__d[i] = arr_vals__d[j];
-            arr_vals__d[j] = temp;
-            arr_indexs__d[i] = j;
-            arr_indexs__d[j] = i;
-        }
-    }
-    ++i;
-    temp = arr_vals__d[i];
-    arr_vals__d[i] = arr_vals__d[up];
-    arr_vals__d[up] = temp;
-    arr_indexs__d[i] = up;
-    arr_indexs__d[up] = i;
-
-    return i;
-};
-
-[[deprecated]] __global__ void quick_sort_no_limit__d(
-    int low,
-    int up,
-    size_t* arr_indexs__d,
-    float* arr_vals__d)
-{
-    if (low == up) return;
-
-    // recursion
-    int partition_index = partition__d(
-        low,
-        up,
-        arr_indexs__d,
-        arr_vals__d);
-    if (partition_index > low + 1) {
-        quick_sort_no_limit__d<<<1, 1>>>(
-            low,
-            partition_index - 1,
-            arr_indexs__d,
-            arr_vals__d);
-    }
-    if (partition_index + 1 < up) {
-        quick_sort_no_limit__d<<<1, 1>>>(
-            partition_index + 1,
-            up,
-            arr_indexs__d,
-            arr_vals__d);
-    }
-};
-
-[[deprecated]] __global__ void quick_sort_limited__d(
-    int low,
-    int up,
-    size_t recursion_limit,
-    size_t* arr_indexs__d,
-    float* arr_vals__d)
-{
-    // base case
-    if (up - low <= recursion_limit) {
-        for (size_t i = low; i <= up; ++i) {
-            for (size_t j = i + 1; j <= up; ++j) {
-                if (arr_vals__d[j] > arr_vals__d[i]) {
-                    float temp = arr_vals__d[i];
-                    arr_vals__d[i] = arr_vals__d[j];
-                    arr_vals__d[j] = temp;
-                    arr_indexs__d[i] = j;
-                    arr_indexs__d[j] = i;
-                }
-            }
-        }
-        return;
-    }
-
-    // recursion
-    int partition_index = partition__d(
-        low,
-        up,
-        arr_indexs__d,
-        arr_vals__d);
-    if (partition_index > low + 1) {
-        quick_sort_limited__d<<<1, 1>>>(
-            low,
-            partition_index - 1,
-            recursion_limit,
-            arr_indexs__d,
-            arr_vals__d);
-    }
-    if (partition_index + 1 < up) {
-        quick_sort_limited__d<<<1, 1>>>(
-            partition_index + 1,
-            up,
-            recursion_limit,
-            arr_indexs__d,
-            arr_vals__d);
-    }
-};
-
-[[deprecated]] cudaError_t max_element_recursive__h(
-    size_t size_,
-    size_t recursion_limit_max_element,
-    size_t stack_size_thread_req_max_element,
-    size_t stack_size_thread_reset,
-    float* arr_vals__d,
-    size_t* max_index__d,
-    float* max_val__d)
-{
-    cudaError_t cuda_status = cudaSuccess;
-
-    // set the stack size
-    cuda_status = cudaDeviceSetLimit(cudaLimitStackSize, stack_size_thread_req_max_element);
-    if (cuda_status != cudaSuccess) return cuda_status;
-
-    // get max element
-    if (!recursion_limit_max_element) {
-        max_element_recursive_no_limit__d<<<1, 1>>>(
-            arr_vals__d,
-            0,
-            size_ - 1,
-            max_index__d,
-            max_val__d);
-    }
-    else {
-        max_element_recursive_limited__d<<<1, 1>>>(
-            arr_vals__d,
-            0,
-            size_ - 1,
-            recursion_limit_max_element,
-            max_index__d,
-            max_val__d);
-    }
-    cuda_status = cudaGetLastError();
-    if (cuda_status != cudaSuccess) return cuda_status;
-    cuda_status = cudaDeviceSynchronize();
-    if (cuda_status != cudaSuccess) return cuda_status;
-
-    // reset the stack size
-    cuda_status = cudaDeviceSetLimit(cudaLimitStackSize, stack_size_thread_reset);
-    return cuda_status;
-};
-
+/*
+ * The common strategy for the max_element function is to divide and conquer
+ * where the divisions are implemented by recursive calls.
+ * However, recursion causes excessive stack usage
+ * resulting with runtime errors (e.g. cuda error code 700).
+ *
+ * The important parameter is the recursion depth.
+ * The divisions are uniform in case of max_element function (e.g. nonuniform for quick_sort).
+ * Hence, the stack usage is proportional with log(N) where N is the size of the array.
+ * Stack use may exceed the device limits, although this value is small.
+ *
+ * Hence, I replaced the recursive implementation with a traditional loop.
+ * The stack variables of the original recursive solution
+ * are converted to two buffers both have the same size as the input array.
+ *
+ * This function implements the division part of the divide and conquer.
+ */
 cudaError_t max_element_no_recursion__h(
     size_t* arr_indexs__d,
     float* arr_vals__d,
@@ -641,6 +755,14 @@ cudaError_t max_element_no_recursion__h(
     return cuda_status;
 };
 
+/*
+ * The main function for the recursive quick_sort.
+ * Decides whether a limitation in the recursive execution is required due to the excessive stack usage.
+ * Calls the base quick_sort function (no limitation on the recursion) if the stack usage is acceptable.
+ * Otherwise, calls the limited quick_sort function.
+ * 
+ * This function is deprecated as the limited quick_sort algorithm is not an effective solution.
+ */
 [[deprecated]] cudaError_t quick_sort_recursive__h(
     size_t size_,
     size_t recursion_limit_quick_sort,
@@ -681,6 +803,9 @@ cudaError_t max_element_no_recursion__h(
     return cuda_status;
 };
 
+/*
+ * Helper function for sort_indexs_by_max_element
+ */
 __global__ void sort_indexs_by_max_element_helper__d(
     size_t* arr_indexs__d,
     float* arr_vals__d,
@@ -694,6 +819,33 @@ __global__ void sort_indexs_by_max_element_helper__d(
     arr_vals__d[i] = FLT_MIN;
 };
 
+/*
+ * Quick sort algorithm suffers from the excessive stack usage problem due to the recursive calls.
+ * Similar to the max_element function, the recursive calls must be replaced with loops.
+ * quick_sort does not guarantee uniform divisions
+ * which introduces the inefficient worst-case scenario to the problem.
+ * Nevertheless, the parallelism in the partition operation of quick_sort
+ * requires synchronization (i.e. atomic).
+ * With P defined as the number of parallel threads, the best and the worst case complexities are:
+ *   - Best: O(N/PLogN) = O(logN) where P = N
+ *   - Worst: O(N²/P) = O(N) where P = N
+ *
+ * In case of the genetic algorithm in this solution,
+ * N is the size of the crossover population (i.e. NC) and
+ * M is the size of the elite population (i.e. NE) where: **NC = NE²**.
+ * Hence, the complexities are:
+ *   - Best: O(LogNC) = O(NE)
+ *   - Worst: O(NC) = O(NE²)
+ *
+ * The above complexities should be considered together with the synchronization cost (i.e. atomic operations).
+ *
+ * This function, on the other hand, sorts the first **M elements** of an **N-size array**.
+ * The function determines the max_element M times.
+ * Hence, the complexity is O(MLogN) = O(NELogNC) = O(NE^2) with P = N.
+ *
+ * Although the complexity is the same as the worst-case complexity of quick sort,
+ * the function does not need any synchronization primitives.
+ */
 cudaError_t sort_indexs_by_max_element_no_recursion__h(
     size_t* arr_indexs__d,
     float* arr_vals__d,
@@ -738,6 +890,12 @@ cudaError_t sort_indexs_by_max_element_no_recursion__h(
     return cuda_status;
 };
 
+/*
+ * Creates random stackings for the elite population.
+ * In other words, performs the initialization for the elite population.
+ * 
+ * The device code
+ */
 __global__ void create_stackings__d(
     size_t population_size,
     unsigned long long seed,
@@ -755,6 +913,12 @@ __global__ void create_stackings__d(
     stackings__d[tid] = val;
 };
 
+/*
+ * Creates random stackings for the elite population.
+ * In other words, performs the initialization for the elite population.
+ *
+ * The host code
+ */
 cudaError_t create_stackings__h(
     size_t population_size,
     _Stacking_t* stackings__d)
@@ -773,6 +937,10 @@ cudaError_t create_stackings__h(
     return cuda_status;
 };
 
+/*
+ * Same as get_stacking_angle_indexs__h which runs in the host code.
+ * Device code
+ */
 __device__ void get_stacking_angle_indexs__d(
     _Stacking_t stacking,
     _Stacking_angle_index_t* stacking_angle_indexs)
@@ -784,6 +952,10 @@ __device__ void get_stacking_angle_indexs__d(
     }
 };
 
+/*
+ * Mutates the input stacking
+ * Device code
+ */
 __global__ void mutate_stackings__d(
     size_t population_size,
     unsigned long long seed,
@@ -809,6 +981,10 @@ __global__ void mutate_stackings__d(
     stackings__d[tid] |= index_val << index_index;
 };
 
+/*
+ * Mutates the input stacking population
+ * Host code
+ */
 cudaError_t mutate_stackings__h(
     size_t population_size,
     _Stacking_t* stackings__d)
@@ -827,7 +1003,11 @@ cudaError_t mutate_stackings__h(
     return cuda_status;
 };
 
-__global__ void filter_stackings__d(
+/*
+ * Select the crossover over genes based on the sorted fitness rate index array
+ * Device code
+ */
+__global__ void select_stackings__d(
     _Stacking_t const* stackings_crossover__d,
     size_t population_size_elite_use,
     size_t const* fitness_rate_indexs__d,
@@ -838,6 +1018,10 @@ __global__ void filter_stackings__d(
     stackings_elite__d[tid] = stackings_crossover__d[fitness_rate_indexs__d[tid]];
 };
 
+/*
+ * Elite population determination powered by recursive quick_sort
+ * which is deprecated
+ */
 [[deprecated]] cudaError_t get_stackings_elite_recursive__h(
     _Stacking_t const* stackings_crossover__d,
     size_t population_size_elite,
@@ -878,7 +1062,7 @@ __global__ void filter_stackings__d(
     if (cuda_status != cudaSuccess) return cuda_status;
 
     // filter the crossover population using the sorted fitness rates
-    filter_stackings__d<<<1, population_size_elite_use>>>(
+    select_stackings__d<<<1, population_size_elite_use>>>(
         stackings_crossover__d,
         population_size_elite_use,
         fitness_rate_indexs__d,
@@ -891,6 +1075,9 @@ __global__ void filter_stackings__d(
     return cuda_status;
 };
 
+/*
+ * Elite population determination powered by non-recursive sort (sort_indexs_by_max_element_no_recursion__h)
+ */
 cudaError_t get_stackings_elite__h(
     _Stacking_t const* stackings_crossover__d,
     size_t* fitness_rate_indexs__d,
@@ -935,7 +1122,7 @@ cudaError_t get_stackings_elite__h(
     if (cuda_status != cudaSuccess) return cuda_status;
 
     // filter the crossover population using the sorted fitness rates
-    filter_stackings__d<<<1, population_size_elite_use>>>(
+    select_stackings__d<<<1, population_size_elite_use>>>(
         stackings_crossover__d,
         population_size_elite_use,
         fitness_rate_indexs__d,
@@ -948,6 +1135,10 @@ cudaError_t get_stackings_elite__h(
     return cuda_status;
 };
 
+/*
+ * Creates a crossover gene from the two input elite genes.
+ *   - Case 1: Splits the input genes into 2 parts
+ */
 __device__ _Stacking_t crossover_2__d(
     _Stacking_t stacking1,
     _Stacking_t stacking2)
@@ -957,6 +1148,10 @@ __device__ _Stacking_t crossover_2__d(
         (stacking2 & 0x00000000FFFFFFFF));
 };
 
+/*
+ * Creates a crossover gene from the two input elite genes.
+ *   - Case 2: Splits the input genes into 4 parts
+ */
 __device__ _Stacking_t crossover_4__d(
     _Stacking_t stacking1,
     _Stacking_t stacking2)
@@ -966,6 +1161,10 @@ __device__ _Stacking_t crossover_4__d(
         (stacking2 & 0x0000FFFF0000FFFF));
 };
 
+/*
+ * Creates a crossover gene from the two input elite genes.
+ *   - Case 3: Splits the input genes into 8 parts
+ */
 __device__ _Stacking_t crossover_8__d(
     _Stacking_t stacking1,
     _Stacking_t stacking2)
@@ -975,6 +1174,10 @@ __device__ _Stacking_t crossover_8__d(
         (stacking2 & 0x00FF00FF00FF00FF));
 };
 
+/*
+ * Creates a crossover gene from the two input elite genes.
+ *   - Case 4: Splits the input genes into 16 parts
+ */
 __device__ _Stacking_t crossover_16__d(
     _Stacking_t stacking1,
     _Stacking_t stacking2)
@@ -984,6 +1187,9 @@ __device__ _Stacking_t crossover_16__d(
         (stacking2 & 0x0F0F0F0F0F0F0F0F));
 };
 
+/*
+ * Fills the crossover population array by matching the elite genes
+ */
 __global__ void get_stackings_crossover__d(
     _Stacking_t const* stackings_elite__d,
     _Stacking_t* stackings_crossover__d)
@@ -1022,6 +1228,9 @@ cudaError_t get_stackings_crossover__h(
     return cuda_status;
 };
 
+/*
+ * Calculates the ABD matrix for the input stacking
+ */
 __device__ void calculate_ABDs__d(
     _Stacking_t stacking,
     float* ABDs)
@@ -1047,6 +1256,10 @@ __device__ void calculate_ABDs__d(
     }
 };
 
+/*
+ * Calculates the fitness rate for the input ABD matrix
+ *   - Case 1: The ABD value can be any number
+ */
 __device__ inline float calculate_fitness_rate_1__d(
     float fitness_coeff,
     float ABD_treshold,
@@ -1058,6 +1271,10 @@ __device__ inline float calculate_fitness_rate_1__d(
     return fitness_val;
 };
 
+/*
+ * Calculates the fitness rate for the input ABD matrix
+ *   - Case 2: The ABD value must be zero (e.g. A16)
+ */
 __device__ inline float calculate_fitness_rate_2__d(
     float fitness_coeff,
     float ABD_val)
@@ -1065,6 +1282,9 @@ __device__ inline float calculate_fitness_rate_2__d(
     return -abs(fitness_coeff * ABD_val);
 };
 
+/*
+ * Calculates the fitness rate for the input ABD matrix
+ */
 __device__ inline float calculate_fitness_rate_main__d(
     float ABDs_current__d[ABD_ARR_SIZE],
     float negative_fitness_factor)
@@ -1110,7 +1330,11 @@ __device__ inline float calculate_fitness_rate_main__d(
             negative_fitness_factor);
 };
 
-__global__ void calculate_fitness_rate__d(
+/*
+ * Calculates the fitness rates for the crossover population
+ * Device code
+ */
+__global__ void calculate_fitness_rates__d(
     _Stacking_t const* stackings_crossover__d,
     size_t population_size_crossover,
     float negative_fitness_factor,
@@ -1126,6 +1350,10 @@ __global__ void calculate_fitness_rate__d(
         negative_fitness_factor);
 };
 
+/*
+ * Calculates the fitness rates for the crossover population
+ * Host code
+ */
 cudaError_t calculate_fitness_rates__h(
     _Stacking_t const* stackings_crossover__d,
     size_t population_size_crossover,
@@ -1135,7 +1363,7 @@ cudaError_t calculate_fitness_rates__h(
     cudaError_t cuda_status = cudaSuccess;
 
     dim3 grid_dim((population_size_crossover + BLOCK_DIM1) / BLOCK_DIM0);
-    calculate_fitness_rate__d<<<grid_dim, BLOCK_DIM0>>>(
+    calculate_fitness_rates__d<<<grid_dim, BLOCK_DIM0>>>(
         stackings_crossover__d,
         population_size_crossover,
         negative_fitness_factor,
@@ -1147,6 +1375,9 @@ cudaError_t calculate_fitness_rates__h(
     return cuda_status;
 };
 
+/*
+ * Gets the stacking with the largest fitness rate among the crossover population
+ */
 cudaError_t get_best_fit_stacking__h(
     _Stacking_t const* stackings_crossover__d,
     size_t population_size_crossover,
@@ -1172,6 +1403,13 @@ cudaError_t get_best_fit_stacking__h(
     return cuda_status;
 };
 
+/*
+ * Run the GA algorithm:
+ *   - Determine the treshold ABD matrix
+ *   - Prepare the cache arrays: A_cache and D_cache
+ *   - Allocate the GPU for the arrays (e.g. elites, fitness rates, etc.)
+ *   - Run the GA loop
+ */
 cudaError_t run(
     Orthotropic const* orthotropic,
     size_t population_size_elite,
@@ -1494,7 +1732,7 @@ cudaError_t run(
             return cuda_status;
         }
 
-        // the max fitness ratio
+        // the max fitness rate
         cuda_status = max_element_no_recursion__h(
             fitness_rate_indexs__d,
             fitness_rate_vals__d,
