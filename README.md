@@ -248,7 +248,7 @@ At this point, it's worth to discuss about the time complexity analysis.
 2. Crossover: O(1)
 3. Mutation: O(1)
 4. Measurement: O(NP)
-5. Selection (i.e. sort): O(NC) where NC = NE²
+5. Selection (i.e. sort): O(NC) where NC = NE ^ 2
 6. Inspection (i.e. max element): O(logNC) ~ O(NE) where NC = NE ^ 2
 
 The complexities for the first 3 steps are obvious.
