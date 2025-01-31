@@ -225,7 +225,7 @@ We can have two approaches in case of the concurrency:
 - Data parallelism: Synchronous execution
 - Task parallelism: Asynchronous execution with producer-consumer strategy
 
-**Data Parallelism**
+**Data Parallelism**\
 The data parallelism corresponds to a **population-wise** strategy.
 In other words, the algorithm is designed
 considering the populations (e.g. elites or crossovers).
@@ -262,7 +262,7 @@ This is the main problem with data parallelism.
 The solution is obvious: Improve the selection (i.e. sort) algorithm.
 See the documentations of `sort_indexs_by_max_element_no_recursion__h` function for this issue.
 
-**Task Parallelism**
+**Task Parallelism**\
 In contrast to the data parallelism, the task parallelism corresponds to a **gene-wise** strategy.
 In other words, the algorithm is designed considering the genes (e.g. elite or crossover).
 Each process operates on the individual genes (or pairs) instead of the populations.
