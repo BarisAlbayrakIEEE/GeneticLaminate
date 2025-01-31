@@ -121,7 +121,7 @@ The first review of the problem and the solution can be improved.
 **Approach 1** below discusses the first solution while **Approach 2** describes an improvement.
 Later in this section, I will discuss about the concurrency which will affect the whole design deeply.
 
-**Approach 1**
+**Approach 1**\
 The traditional definition for a stacking is an array of the angles: `unsigned char[N]`.
 The unsigned char data type is more than enough to store the 4 angle indices: 0, 1, 2, and 3.
 This definition is very efficient considering the 3rd question, as the ABD matrix contains the summation of the stiffness terms calculated per ply.
@@ -154,7 +154,7 @@ Although this copy operation is a bitwise copy and fast,
 the crossover operation is still the hot point in the program flow,
 as the 6 bits of the unsigned char do not contain data but need to be copied for each ply.
 
-**Approach 2**
+**Approach 2**\
 The crossover operation can be lifted by defining **the whole stacking** with an **integral data type**.
 For example, `uint64_t` can store up to 32 plies.
 By this conversion, the crossover operation can be processed with the core CPU operations such as bit masking and shifting with almost no cost.
