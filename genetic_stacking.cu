@@ -5,11 +5,12 @@
 * See the README file of the repository below for the details
 * 
 * author: albayrak.baris.ieee@gmail.com
-* repo: https://github.com/BarisAlbayrakIEEE/GeneticLaminate
+* repo: https://github.com/BarisAlbayrakIEEE/GeneticLaminate.git
 */
 
 #include <stdio.h>
 #include <cstddef>
+#include <cstdint>
 #include <chrono>
 #include <curand_kernel.h>
 #include <cmath>
@@ -914,7 +915,7 @@ cudaError_t sort_indexs_by_max_element_no_recursion__h(
  */
 __global__ void create_stackings__d(
     size_t population_size,
-    unsigned long long seed,
+    uint64_t seed,
     _Stacking_t* stackings__d)
 {
     size_t tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -923,9 +924,9 @@ __global__ void create_stackings__d(
     curandState state;
     curand_init(seed, tid, 0, &state);
 
-    unsigned long long high = (unsigned long long)(curand(&state) & 0x7FFFFFFFFFFFFFFF);
-    unsigned long long low = (unsigned long long)(curand(&state) & 0x7FFFFFFFFFFFFFFF);
-    unsigned long long val = (high << 32) | low;
+    uint64_t high = (uint64_t)(curand(&state) & 0x7FFFFFFFFFFFFFFF);
+    uint64_t low = (uint64_t)(curand(&state) & 0x7FFFFFFFFFFFFFFF);
+    uint64_t val = (high << 32) | low;
     stackings__d[tid] = val;
 };
 
@@ -974,7 +975,7 @@ __device__ void get_stacking_angle_indexs__d(
  */
 __global__ void mutate_stackings__d(
     size_t population_size,
-    unsigned long long seed,
+    uint64_t seed,
     _Stacking_t* stackings__d)
 {
     size_t tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -985,8 +986,8 @@ __global__ void mutate_stackings__d(
     curand_init(seed, tid, 0, &state);
 
     // Generate a 64-bit random number and constrain it to [min, max]
-    unsigned long long index_index_long = curand(&state) & 0x7FFFFFFFFFFFFFFF;
-    unsigned long long index_val_long = curand(&state) & 0x7FFFFFFFFFFFFFFF;
+    uint64_t index_index_long = curand(&state) & 0x7FFFFFFFFFFFFFFF;
+    uint64_t index_val_long = curand(&state) & 0x7FFFFFFFFFFFFFFF;
     size_t index_index = (size_t)(index_index_long % (PLY_COUNT - 1));
     unsigned char index_val = static_cast<unsigned char>(index_val_long % (ANGLE_INDEX_90 + 1));
 
