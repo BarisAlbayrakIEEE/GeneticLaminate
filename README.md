@@ -91,7 +91,7 @@ Hence, **the GA in this project is a primitive version** with the following step
 1. **Generation:** Generate a new population as the initial elite population
 2. **Crossover:** Perform crossover on the existing elite generation
 3. **Mutation:** Mutate the crossovers
-4. **Measure:** Measure the fitness rates for the mutations
+4. **Measurement:** Measure the fitness rates for the mutations
 5. **Selection:** Obtain the new elites from the mutations based on the fitness rates
 6. **Inspection:** If local maxima failure is detected, go to Step 1, otherwise go to Step 2
 
@@ -217,7 +217,7 @@ Let's recall the flowchart of the genetic solution:
 1. Generation: Generate a new population as the initial elite population
 2. Crossover: Perform crossover on the existing elite generation
 3. Mutation: Mutate the crossovers
-4. Measure: Measure the fitness rates for the mutations
+4. Measurement: Measure the fitness rates for the mutations
 5. Selection: Obtain the new elites from the mutations based on the fitness rates
 6. Inspection: If maxima is detected goto Step 1, otherwise goto Step 2
 
