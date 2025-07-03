@@ -1934,7 +1934,7 @@ cudaError_t run(
 
 
 
-    // TODO: SIL
+    // TODO: DEL
     clock_t tf = clock();
     size_t dur = (tf - ti) * 1000 / CLOCKS_PER_SEC;
     printf("\n**************************\n");
