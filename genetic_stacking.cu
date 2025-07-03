@@ -2,6 +2,18 @@
 * This file contains functions of the genetic algorithm
 * for the determination of stacking sequence of composite laminates.
 * 
+* recursive device functions are deprecated and not used due to excessive stack usage:
+*   - [[deprecated]] __device__ void max_element_recursive_no_limit__d__d
+*   - [[deprecated]] __global__ void max_element_recursive_no_limit__d__g
+*   - [[deprecated]] __device__ void max_element_recursive_limited__d__d
+*   - [[deprecated]] __global__ void max_element_recursive_limited__d__g
+*   - [[deprecated]] __device__ size_t partition__d
+*   - [[deprecated]] __global__ void quick_sort_no_limit__d
+*   - [[deprecated]] __global__ void quick_sort_limited__d
+*   - [[deprecated]] cudaError_t max_element_recursive__h
+*   - [[deprecated]] cudaError_t quick_sort_recursive__h
+*   - [[deprecated]] cudaError_t get_stackings_elite_recursive__h
+* 
 * See the README file of the repository below for the details
 * 
 * author: albayrak.baris.ieee@gmail.com
