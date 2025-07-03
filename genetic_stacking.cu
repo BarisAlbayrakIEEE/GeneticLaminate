@@ -13,6 +13,7 @@
 #include <chrono>
 #include <curand_kernel.h>
 #include <cmath>
+#include <float.h>
 #include <time.h>
 #include <cuda_runtime.h>
 #include "device_launch_parameters.h"
@@ -20,9 +21,9 @@
 #define PLY_COUNT 32
 #define BLOCK_DIM0 32
 #define BLOCK_DIM1 31
-#define UINT64_ANGLE_0 0ui64
-#define UINT64_ANGLE_P45 0xAAAAAAAAAAAAAAAAui64
-#define UINT64_ANGLE_90 0xFFFFFFFFFFFFFFFFui64
+#define UINT64_ANGLE_0 0ULL
+#define UINT64_ANGLE_P45 0xAAAAAAAAAAAAAAAAULL
+#define UINT64_ANGLE_90 0xFFFFFFFFFFFFFFFFULL
 
 #define ANGLE_INDEX_ARR_SIZE 4    // [0, 1, 2, 3]: [0, +45, -45, 90]
 #define ANGLE_INDEX_0 0           // 0
@@ -45,10 +46,13 @@ static const float C3S1[] = { 0.00f, 0.25f, -0.25f, 0.00f }; // cos^3 * sin^1
 static const float C4[] = { 1.00f, 0.25f, 0.25f, 0.00f };    // cos^4
 static const float S4[] = { 0.00f, 0.25f, 0.25f, 1.00f };    // sin^4
 
+/*
+TODO: DEL
 static const size_t STACK_SIZE_MAX_ELEMENT_1 = 64;
 static const size_t STACK_SIZE_MAX_ELEMENT_2 = 80;
 static const size_t STACK_SIZE_QUICK_SORT_1 = 80;
 static const size_t STACK_SIZE_QUICK_SORT_2 = 96;
+*/
 static const size_t STACK_SIZE_FUNCTION_COEFF = 2;
 static const size_t STACK_SIZE_GLOBAL_SF = 4;
 static const size_t CROSSOVER_TYPE_COUNT = 4;
@@ -337,12 +341,12 @@ __global__ void initialize_indexs(
 };
 
 /*
- * The recursive max_element without limitation on the recursion.
+ * The recursive max_element without limitation on the recursion - kernel (see below for the global gate)
  * The available stack size is sufficient to support the full depth recursion.
  * 
  * Deprecated as the recursive solution is not an efficient solution due to the excessive stack usage.
  */
-[[deprecated]] __global__ void max_element_recursive_no_limit__d(
+[[deprecated]] __device__ void max_element_recursive_no_limit__d__d(
     float const* arr_vals__d,
     size_t low,
     size_t up,
@@ -356,24 +360,13 @@ __global__ void initialize_indexs(
         return;
     }
 
-    // recursion
     size_t half = (low + up) / 2;
     size_t max_index1 = 0;
     size_t max_index2 = 0;
     float max_val1 = 0.f;
     float max_val2 = 0.f;
-    max_element_recursive_no_limit__d<<<1, 1>>>(
-        arr_vals__d,
-        low,
-        half,
-        &max_index1,
-        &max_val1);
-    max_element_recursive_no_limit__d<<<1, 1>>>(
-        arr_vals__d,
-        half + 1,
-        up,
-        &max_index2,
-        &max_val2);
+    max_element_recursive_no_limit__d__d(arr_vals__d, low, half, &max_index1, &max_val1);
+    max_element_recursive_no_limit__d__d(arr_vals__d, half + 1, up, &max_index2, &max_val2);
     if (max_val1 > max_val2) {
         *max_index__d = max_index1;
         *max_val__d = max_val1;
@@ -385,12 +378,28 @@ __global__ void initialize_indexs(
 };
 
 /*
- * The recursive max_element with limited recursion.
+ * The recursive max_element without limitation on the recursion - global (see above for the recursive kernel)
+ * The available stack size is sufficient to support the full depth recursion.
+ * 
+ * Deprecated as the recursive solution is not an efficient solution due to the excessive stack usage.
+ */
+[[deprecated]] __global__ void max_element_recursive_no_limit__d__g(
+    float const* arr_vals__d,
+    size_t low,
+    size_t up,
+    size_t* max_index__d,
+    float* max_val__d)
+{
+    max_element_recursive_no_limit__d__d(arr_vals__d, low, up, max_index__d, max_val__d);
+};
+
+/*
+ * The recursive max_element with limited recursion - kernel (see below for the global gate)
  * The available stack size is not sufficient to support the full depth recursion.
  *
  * Deprecated as the recursive solution is not an efficient solution due to the excessive stack usage.
  */
-[[deprecated]] __global__ void max_element_recursive_limited__d(
+[[deprecated]] __device__ void max_element_recursive_limited__d__d(
     float const* arr_vals__d,
     size_t low,
     size_t up,
@@ -417,20 +426,8 @@ __global__ void initialize_indexs(
     size_t max_index2 = 0;
     float max_val1 = 0.f;
     float max_val2 = 0.f;
-    max_element_recursive_limited__d<<<1, 1>>>(
-        arr_vals__d,
-        low,
-        half,
-        recursion_limit,
-        &max_index1,
-        &max_val1);
-    max_element_recursive_limited__d<<<1, 1>>>(
-        arr_vals__d,
-        half + 1,
-        up,
-        recursion_limit,
-        &max_index2,
-        &max_val2);
+    max_element_recursive_limited__d__d(arr_vals__d, low, half, recursion_limit, &max_index1, &max_val1);
+    max_element_recursive_limited__d__d(arr_vals__d, half + 1, up, recursion_limit, &max_index2, &max_val2);
     if (max_val1 > max_val2) {
         *max_index__d = max_index1;
         *max_val__d = max_val1;
@@ -439,6 +436,23 @@ __global__ void initialize_indexs(
         *max_index__d = max_index2;
         *max_val__d = max_val2;
     }
+};
+
+/*
+ * The recursive max_element with limited recursion - global (see above for the recursive kernel)
+ * The available stack size is not sufficient to support the full depth recursion.
+ *
+ * Deprecated as the recursive solution is not an efficient solution due to the excessive stack usage.
+ */
+[[deprecated]] __global__ void max_element_recursive_limited__d__g(
+    float const* arr_vals__d,
+    size_t low,
+    size_t up,
+    size_t recursion_limit,
+    size_t* max_index__d,
+    float* max_val__d)
+{
+    max_element_recursive_limited__d__d(arr_vals__d, low, up, recursion_limit, max_index__d, max_val__d);
 };
 
 /*
@@ -587,8 +601,10 @@ __global__ void initialize_indexs(
     if (cuda_status != cudaSuccess) return cuda_status;
 
     // get max element
+    size_t stack_size = 64 * 1024;
+    cudaDeviceSetLimit(cudaLimitStackSize, stack_size);
     if (!recursion_limit_max_element) {
-        max_element_recursive_no_limit__d<<<1, 1>>>(
+        max_element_recursive_no_limit__d__g<<<1, 1>>>(
             arr_vals__d,
             0,
             size_ - 1,
@@ -596,7 +612,7 @@ __global__ void initialize_indexs(
             max_val__d);
     }
     else {
-        max_element_recursive_limited__d<<<1, 1>>>(
+        max_element_recursive_limited__d__g<<<1, 1>>>(
             arr_vals__d,
             0,
             size_ - 1,
@@ -1890,9 +1906,9 @@ cudaError_t run(
         t0 = t1;
         durs += (float)dur;
         printf("**************************\n");
-        printf("counter: %llu\n", counter);
-        printf("duration: %llu\n", dur);
-        printf("best_fit_index__h: %llu\n", best_fit_index__h);
+        printf("counter: %zu\n", counter);
+        printf("duration: %zu\n", dur);
+        printf("best_fit_index__h: %zu\n", best_fit_index__h);
         printf("best_fit_rate_current__h: %f\n", best_fit_rate_current__h);
         printf("best_fit_rate_previous__h: %f\n", best_fit_rate_previous__h);
         printf("best_fit_rate_max__h: %f\n", best_fit_rate_max__h);
@@ -1921,8 +1937,8 @@ cudaError_t run(
     clock_t tf = clock();
     size_t dur = (tf - ti) * 1000 / CLOCKS_PER_SEC;
     printf("\n**************************\n");
-    printf("counter: %llu\n", counter);
-    printf("total duration: %llu\n", dur);
+    printf("counter: %zu\n", counter);
+    printf("total duration: %zu\n", dur);
     printf("average duration: %f\n", durs / (float)counter);
     printf("best_fit_rate_max__h: %f\n", best_fit_rate_max__h);
 
@@ -1954,5 +1970,6 @@ int main()
     for (size_t i = 0; i < PLY_COUNT; ++i) {
         printf("%d,", best_fit_stacking__h_angle_indexs__h[i]);
     }
+    printf("\n");
     return 0;
 }
