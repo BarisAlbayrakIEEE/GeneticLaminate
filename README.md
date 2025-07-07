@@ -1,4 +1,11 @@
-# 1. About The Project
+**Contents**
+1.   [Introduction](#sec1)
+2.   [About The Project](#sec2)
+3.   [Problem Definition: Composite Laminates](#sec3)
+4.   [Design](#sec4)
+5.   [Concurrency](#sec5)
+
+## 1. About The Project <a id='sec1'></a>
 
 This project is a part of the repositories to illustrate my software engineering experience.
 This repository especially demonstrates my skills and capabilities in concurrency and GPU parallelism.
@@ -18,7 +25,7 @@ Finally, I will discuss the issues about performance and concurrency.
 - **NE:** The size of elite population
 - **NC:** The size of crossover population where NC = NE^2
 
-# 2. The Problem Definition: Composite Laminates
+## 2. Problem Definition: Composite Laminates <a id='sec2'></a>
 
 Composite laminates are used widely in the industry due to their high stiffness capabilities.
 The stiffness of a composite laminate is strictly based on how the plies are arranged.
@@ -53,7 +60,7 @@ Besides, composite theory uses angle brackets and backslashes in order to demons
 
 Refer to any composite source for more details about the issue.
 
-# 3. The Genetic Algorithm
+## 3. The Genetic Algorithm <a id='sec3'></a>
 
 A brief analysis of the problem shows that the GA is a good candidate for the solution.
 In the **base case**, the GAs would easily eliminate the unreasonable sequences and direct the available resources for the ones around the local and global extremities.
@@ -103,7 +110,7 @@ Various techniques/strategies exist to solve the problem such as:
 I used the simplest one which is the Step 6 in the above flowchart:
 - Restart with a new generation.
 
-# 4. The Design
+## 4. Design <a id='sec4'></a>
 
 A GA requires answers to the following questions:
 - How to define a gene?
@@ -211,7 +218,7 @@ It's important to note here that the two would require different data structures
 - Data parallelism: Contiguous arrays (e.g. `elites_array[]`, `crossovers_array[]`)
 - Task parallelism: Thread-safe queues (e.g. `elites_queue`, `crossovers_queue`)
 
-# 5. The Concurrency
+## 5. Concurrency <a id='sec5'></a>
 
 Let's recall the flowchart of the genetic solution:
 1. Generation: Generate a new population as the initial elite population
