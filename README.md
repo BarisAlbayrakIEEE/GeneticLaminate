@@ -1,7 +1,7 @@
 **Contents**
-1.   [Introduction](#sec1)
-2.   [About The Project](#sec2)
-3.   [Problem Definition: Composite Laminates](#sec3)
+1.   [About The Project](#sec1)
+2.   [Problem Definition: Composite Laminates](#sec2)
+3.   [The Genetic Algorithm](#sec3)
 4.   [Design](#sec4)
 5.   [Concurrency](#sec5)
 
